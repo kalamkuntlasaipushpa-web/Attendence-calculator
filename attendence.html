@@ -1,147 +1,227 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Advanced Attendance Tracker</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance Calculator</title>
   <style>
-    body { font-family: Arial; background:#f2f2f2; text-align:center; padding:20px; }
-    h1 { background:purple; color:white; padding:20px; }
-    select, input, button { margin:5px; padding:10px; font-size:16px; }
-    button { cursor:pointer; background:black; color:white; border:none; border-radius:8px; }
-    button:hover { background:purple; }
-    .month-container { border:2px solid purple; padding:10px; margin:10px auto; border-radius:8px; background:#fff; width:400px; text-align:left; }
-    .low { color:red; }
-    .good { color:green; }
-    .daily-log { margin-left:20px; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f4f4f4;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .month-container {
+      background: #eef;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+    .good {
+      color: green;
+      font-weight: bold;
+    }
+    .low {
+      color: red;
+      font-weight: bold;
+    }
+    label {
+      margin-right: 10px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 8px 15px;
+      border: none;
+      border-radius: 5px;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    select, input[type=checkbox] {
+      margin-right: 10px;
+    }
+    ul {
+      list-style-type: none;
+      padding-left: 0;
+    }
   </style>
 </head>
 <body>
+  <div class="container">
+    <h1>Attendance Calculator</h1>
 
-<h1>📊 Advanced Attendance Tracker</h1>
+    <div>
+      <label for="monthSelect">Select Month:</label>
+      <select id="monthSelect">
+        <option value="">--Select Month--</option>
+        <option value="January">January</option>
+        <option value="February">February</option>
+        <option value="March">March</option>
+        <option value="April">April</option>
+        <option value="May">May</option>
+        <option value="June">June</option>
+        <option value="July">July</option>
+        <option value="August">August</option>
+        <option value="September">September</option>
+        <option value="October">October</option>
+        <option value="November">November</option>
+        <option value="December">December</option>
+      </select>
+    </div>
 
-<label for="monthSelect">Select Month:</label><br>
-<select id="monthSelect">
-  <option value="">--Select Month--</option>
-  <option value="January">January</option>
-  <option value="February">February</option>
-  <option value="March">March</option>
-  <option value="April">April</option>
-  <option value="May">May</option>
-  <option value="June">June</option>
-  <option value="July">July</option>
-  <option value="August">August</option>
-  <option value="September">September</option>
-  <option value="October">October</option>
-  <option value="November">November</option>
-  <option value="December">December</option>
-</select><br><br>
+    <div style="margin-top:10px;">
+      <label><input type="checkbox" id="morningPresent"> Morning Present (4 classes)</label>
+      <label><input type="checkbox" id="afternoonPresent"> Afternoon Present (3 classes)</label>
+    </div>
 
-<h3>Daily Classes</h3>
-Morning Classes: 4 &nbsp;&nbsp; Afternoon Classes: 3<br><br>
+    <button onclick="addDailyAttendance()">Add Attendance</button>
+    <button onclick="resetMonth()">Reset Month</button>
 
-<label><input type="checkbox" id="morningPresent"> Morning Present</label><br>
-<label><input type="checkbox" id="afternoonPresent"> Afternoon Present</label><br><br>
+    <h2>Month Summary</h2>
+    <div id="monthData"></div>
 
-<button onclick="addDailyAttendance()">Add Today Attendance</button>
-<button onclick="resetMonth()">Reset Month</button>
+    <h2>Attendance History</h2>
+    <div id="attendanceHistory"></div>
+  </div>
 
-<div id="monthData"></div>
+  <script>
+    let attendanceData = JSON.parse(localStorage.getItem("attendanceData")) || {};
 
-<h2>📖 Attendance History</h2>
-<div id="attendanceHistory"></div>
+    // Save to localStorage
+    function saveData() {
+      localStorage.setItem("attendanceData", JSON.stringify(attendanceData));
+    }
 
-<script>
-var attendanceData = {}; // Month-wise attendance
+    function addDailyAttendance() {
+      const month = document.getElementById("monthSelect").value;
+      if (!month) {
+        alert("Select a month!");
+        return;
+      }
 
-function addDailyAttendance() {
-  var month = document.getElementById("monthSelect").value;
-  if(month === "") { alert("Select a month!"); return; }
+      const morningPresent = document.getElementById("morningPresent").checked ? 4 : 0;
+      const afternoonPresent = document.getElementById("afternoonPresent").checked ? 3 : 0;
+      const totalClassesToday = 7;
 
-  var morningPresent = document.getElementById("morningPresent").checked ? 4 : 0;
-  var afternoonPresent = document.getElementById("afternoonPresent").checked ? 3 : 0;
-  var totalClassesToday = 4 + 3;
+      const today = new Date();
+      const options = { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' };
+      const dateStr = today.toLocaleDateString('en-GB', options);
 
-  var today = new Date();
-  var options = { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' };
-  var dateStr = today.toLocaleDateString('en-GB', options); // 01-Mar-2026, Wednesday
+      if (!attendanceData[month]) {
+        attendanceData[month] = { present: 0, total: 0, dailyLogs: [] };
+      }
 
-  if(!attendanceData[month]) attendanceData[month] = { present:0, total:0, dailyLogs: [] };
+      // Prevent duplicate entry for same day
+      const alreadyMarked = attendanceData[month].dailyLogs.some(log => log.date === dateStr);
+      if (alreadyMarked) {
+        alert("Attendance already marked for today!");
+        return;
+      }
 
-  attendanceData[month].present += morningPresent + afternoonPresent;
-  attendanceData[month].total += totalClassesToday;
+      attendanceData[month].present += morningPresent + afternoonPresent;
+      attendanceData[month].total += totalClassesToday;
 
-  // Add daily log
-  attendanceData[month].dailyLogs.push({
-    date: dateStr,
-    morning: morningPresent === 4 ? "Present" : "Absent",
-    afternoon: afternoonPresent === 3 ? "Present" : "Absent"
-  });
+      attendanceData[month].dailyLogs.push({
+        date: dateStr,
+        morning: morningPresent ? "Present" : "Absent",
+        afternoon: afternoonPresent ? "Present" : "Absent"
+      });
 
-  // Clear checkboxes
-  document.getElementById("morningPresent").checked = false;
-  document.getElementById("afternoonPresent").checked = false;
+      document.getElementById("morningPresent").checked = false;
+      document.getElementById("afternoonPresent").checked = false;
 
-  renderMonthData();
-  renderHistory();
-}
+      saveData();
+      renderMonthData();
+      renderHistory();
+    }
 
-function resetMonth() {
-  var month = document.getElementById("monthSelect").value;
-  if(month && attendanceData[month]) {
-    attendanceData[month] = { present:0, total:0, dailyLogs: [] };
-    renderMonthData();
-    renderHistory();
-  }
-}
+    function resetMonth() {
+      const month = document.getElementById("monthSelect").value;
 
-function renderMonthData() {
-  var container = document.getElementById("monthData");
-  container.innerHTML = "";
+      if (month && attendanceData[month]) {
+        if (confirm("Are you sure you want to reset this month?")) {
+          attendanceData[month] = { present: 0, total: 0, dailyLogs: [] };
+          saveData();
+          renderMonthData();
+          renderHistory();
+        }
+      }
+    }
 
-  for(var month in attendanceData) {
-    var div = document.createElement("div");
-    div.className = "month-container";
+    function renderMonthData() {
+      const container = document.getElementById("monthData");
+      container.innerHTML = "";
 
-    var percent = attendanceData[month].total > 0 ? 
-      ((attendanceData[month].present / attendanceData[month].total)*100).toFixed(2) : 0;
+      Object.keys(attendanceData).forEach(month => {
+        const data = attendanceData[month];
 
-    var colorClass = percent >= 75 ? "good" : "low";
+        const percent = data.total > 0
+          ? ((data.present / data.total) * 100).toFixed(2)
+          : 0;
 
-    var html = "<h3>"+month+"</h3>" +
-               "Present Classes: " + attendanceData[month].present + "<br>" +
-               "Total Classes: " + attendanceData[month].total + "<br>" +
-               "Attendance %: <b class='"+colorClass+"'>" + percent + "%</b>";
+        const colorClass = percent >= 75 ? "good" : "low";
 
-    div.innerHTML = html;
-    container.appendChild(div);
-  }
-}
+        const div = document.createElement("div");
+        div.className = "month-container";
+        div.innerHTML = `
+          <h3>${month}</h3>
+          Present Classes: ${data.present} <br>
+          Total Classes: ${data.total} <br>
+          Attendance %: <b class="${colorClass}">${percent}%</b>
+        `;
 
-function renderHistory() {
-  var historyContainer = document.getElementById("attendanceHistory");
-  historyContainer.innerHTML = "";
+        container.appendChild(div);
+      });
+    }
 
-  for(var month in attendanceData) {
-    var monthDiv = document.createElement("div");
-    monthDiv.className = "month-container";
+    function renderHistory() {
+      const historyContainer = document.getElementById("attendanceHistory");
+      historyContainer.innerHTML = "";
 
-    var html = "<h3>"+month+"</h3>";
-    html += "<ul>";
+      Object.keys(attendanceData).forEach(month => {
+        const monthDiv = document.createElement("div");
+        monthDiv.className = "month-container";
 
-    attendanceData[month].dailyLogs.forEach(function(log){
-      var morningClass = log.morning === "Absent" ? "low" : "good";
-      var afternoonClass = log.afternoon === "Absent" ? "low" : "good";
+        let html = `<h3>${month}</h3><ul>`;
 
-      html += "<li>" + log.date + 
-              " → Morning: <span class='"+morningClass+"'>" + log.morning + 
-              "</span>, Afternoon: <span class='"+afternoonClass+"'>" + log.afternoon + "</span></li>";
-    });
+        attendanceData[month].dailyLogs.forEach(log => {
+          const morningClass = log.morning === "Absent" ? "low" : "good";
+          const afternoonClass = log.afternoon === "Absent" ? "low" : "good";
 
-    html += "</ul>";
-    monthDiv.innerHTML = html;
-    historyContainer.appendChild(monthDiv);
-  }
-}
-</script>
+          html += `
+            <li>
+              ${log.date} → 
+              Morning: <span class="${morningClass}">${log.morning}</span>, 
+              Afternoon: <span class="${afternoonClass}">${log.afternoon}</span>
+            </li>
+          `;
+        });
+
+        html += "</ul>";
+        monthDiv.innerHTML = html;
+        historyContainer.appendChild(monthDiv);
+      });
+    }
+
+    // Load data on page open
+    window.onload = function () {
+      renderMonthData();
+      renderHistory();
+    };
+  </script>
 <html>
 <head>
   <title>Attendance Calculator</title>
@@ -179,6 +259,5 @@ function calculate() {
 
 </body>
 </html>
-
 </body>
 </html>
