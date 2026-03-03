@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Advanced Attendance Tracker</title>
+  <style>
+    body { font-family: Arial; background:#f2f2f2; text-align:center; padding:20px; }
+    h1 { background:purple; color:white; padding:20px; }
+    select, input, button { margin:5px; padding:10px; font-size:16px; }
+    button { cursor:pointer; background:black; color:white; border:none; border-radius:8px; }
+    button:hover { background:purple; }
+    .month-container { border:2px solid purple; padding:10px; margin:10px auto; border-radius:8px; background:#fff; width:400px; text-align:left; }
+    .low { color:red; }
+    .good { color:green; }
+    .daily-log { margin-left:20px; }
+  </style>
+</head>
+<body>
+
+<h1>📊 Advanced Attendance Tracker</h1>
+
+<label for="monthSelect">Select Month:</label><br>
+<select id="monthSelect">
+  <option value="">--Select Month--</option>
+  <option value="January">January</option>
+  <option value="February">February</option>
+  <option value="March">March</option>
+  <option value="April">April</option>
+  <option value="May">May</option>
+  <option value="June">June</option>
+  <option value="July">July</option>
+  <option value="August">August</option>
+  <option value="September">September</option>
+  <option value="October">October</option>
+  <option value="November">November</option>
+  <option value="December">December</option>
+</select><br><br>
+
+<h3>Daily Classes</h3>
+Morning Classes: 4 &nbsp;&nbsp; Afternoon Classes: 3<br><br>
+
+<label><input type="checkbox" id="morningPresent"> Morning Present</label><br>
+<label><input type="checkbox" id="afternoonPresent"> Afternoon Present</label><br><br>
+
+<button onclick="addDailyAttendance()">Add Today Attendance</button>
+<button onclick="resetMonth()">Reset Month</button>
+
+<div id="monthData"></div>
+
+<h2>📖 Attendance History</h2>
+<div id="attendanceHistory"></div>
+
+<script>
+var attendanceData = {}; // Month-wise attendance
+
+function addDailyAttendance() {
+  var month = document.getElementById("monthSelect").value;
+  if(month === "") { alert("Select a month!"); return; }
+
+  var morningPresent = document.getElementById("morningPresent").checked ? 4 : 0;
+  var afternoonPresent = document.getElementById("afternoonPresent").checked ? 3 : 0;
+  var totalClassesToday = 4 + 3;
+
+  var today = new Date();
+  var options = { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' };
+  var dateStr = today.toLocaleDateString('en-GB', options); // 01-Mar-2026, Wednesday
+
+  if(!attendanceData[month]) attendanceData[month] = { present:0, total:0, dailyLogs: [] };
+
+  attendanceData[month].present += morningPresent + afternoonPresent;
+  attendanceData[month].total += totalClassesToday;
+
+  // Add daily log
+  attendanceData[month].dailyLogs.push({
+    date: dateStr,
+    morning: morningPresent === 4 ? "Present" : "Absent",
+    afternoon: afternoonPresent === 3 ? "Present" : "Absent"
+  });
+
+  // Clear checkboxes
+  document.getElementById("morningPresent").checked = false;
+  document.getElementById("afternoonPresent").checked = false;
+
+  renderMonthData();
+  renderHistory();
+}
+
+function resetMonth() {
+  var month = document.getElementById("monthSelect").value;
+  if(month && attendanceData[month]) {
+    attendanceData[month] = { present:0, total:0, dailyLogs: [] };
+    renderMonthData();
+    renderHistory();
+  }
+}
+
+function renderMonthData() {
+  var container = document.getElementById("monthData");
+  container.innerHTML = "";
+
+  for(var month in attendanceData) {
+    var div = document.createElement("div");
+    div.className = "month-container";
+
+    var percent = attendanceData[month].total > 0 ? 
+      ((attendanceData[month].present / attendanceData[month].total)*100).toFixed(2) : 0;
+
+    var colorClass = percent >= 75 ? "good" : "low";
+
+    var html = "<h3>"+month+"</h3>" +
+               "Present Classes: " + attendanceData[month].present + "<br>" +
+               "Total Classes: " + attendanceData[month].total + "<br>" +
+               "Attendance %: <b class='"+colorClass+"'>" + percent + "%</b>";
+
+    div.innerHTML = html;
+    container.appendChild(div);
+  }
+}
+
+function renderHistory() {
+  var historyContainer = document.getElementById("attendanceHistory");
+  historyContainer.innerHTML = "";
+
+  for(var month in attendanceData) {
+    var monthDiv = document.createElement("div");
+    monthDiv.className = "month-container";
+
+    var html = "<h3>"+month+"</h3>";
+    html += "<ul>";
+
+    attendanceData[month].dailyLogs.forEach(function(log){
+      var morningClass = log.morning === "Absent" ? "low" : "good";
+      var afternoonClass = log.afternoon === "Absent" ? "low" : "good";
+
+      html += "<li>" + log.date + 
+              " → Morning: <span class='"+morningClass+"'>" + log.morning + 
+              "</span>, Afternoon: <span class='"+afternoonClass+"'>" + log.afternoon + "</span></li>";
+    });
+
+    html += "</ul>";
+    monthDiv.innerHTML = html;
+    historyContainer.appendChild(monthDiv);
+  }
+}
+</script>
+<html>
+<head>
+  <title>Attendance Calculator</title>
+</head>
+
+<body style="text-align:center; font-family:Arial; background:#f2f2f2;">
+
+<h1 style="background:purple; color:white; padding:20px;">
+📊 Attendance Calculator
+</h1>
+
+<input type="number" id="present" placeholder="Present Days"><br><br>
+<input type="number" id="total" placeholder="Total Classes"><br><br>
+
+<button onclick="calculate()">Check</button>
+
+<h2 id="result"></h2>
+
+<script>
+function calculate() {
+  var present = document.getElementById("present").value;
+  var total = document.getElementById("total").value;
+
+  var percentage = (present / total) * 100;
+
+  if (percentage >= 75) {
+    document.getElementById("result").innerHTML =
+      "😎 Safe to Bunk! " + percentage.toFixed(2) + "%";
+  } else {
+    document.getElementById("result").innerHTML =
+      "🚨 Danger Zone! " + percentage.toFixed(2) + "%";
+  }
+}
+</script>
+
+</body>
+</html>
+
+</body>
+</html>
